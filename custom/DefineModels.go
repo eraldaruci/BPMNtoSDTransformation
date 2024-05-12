@@ -6,9 +6,7 @@ import (
 	"gitlab.com/teec2/simplified/components/serverextender/client"
 	"gitlab.com/teec2/simplified/components/serverextender/simplifiedFunctions"
 	"gitlab.com/teec2/simplified/components/serverextender/simplifiedTypes"
-	"log"
 	"strconv"
-	"time"
 )
 
 func DefineModels(wsClient *client.WebSocketClient) {
@@ -138,69 +136,31 @@ func DefineModels(wsClient *client.WebSocketClient) {
 		fmt.Println("Problem retrieving Folders from SFD model:", targetModel.Identification)
 		return
 	}
-	//fmt.Printf("target model ------- %#v \n", targetModel)
-	//if len(*targetFolders) > 0 {
-	//	for _, f := range *targetFolders {
-	//		fmt.Printf("folder  %s  --- %#v \n", f.Id, f)
-	//	}
-	//}
+
 	mets, errs := simplifiedFunctions.GetModelElement(wsClient, simplifiedTypes.ModelElementsByModel, targetModel.Id)
 	if errs != nil {
 		fmt.Println("Error getting SFD Model Elements", errs)
 		//return
 	}
-	if len(*mets) > 0 {
-		for _, e := range *mets {
-			fmt.Printf("SFD elements<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<%#v \n", e)
-		}
-	}
+
 	conns, errs := simplifiedFunctions.GetModelConnection(wsClient, simplifiedTypes.ModelConnectionsByModel, sourceModel.Id)
 	if errs != nil {
 		fmt.Println("Error getting SFD Model Connections", errs)
 		//return
 	}
 
-	//fmt.Printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> number of elements created, number of connections-> ", targetModel, mets, conns)
-
 	mets1, errs := simplifiedFunctions.GetModelElement(wsClient, simplifiedTypes.ModelElementsByModel, sourceModel.Id)
 	if errs != nil {
 		fmt.Println("Error getting BPMN Model Elements", errs)
-		//return
+
 	}
 
-	if len(*mets) > 0 {
-		for _, e1 := range *mets {
-			fmt.Printf("SFD elements<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<%#v \n", e1)
-		}
-	}
-
-	//conns1, errs := simplifiedFunctions.GetModelConnection(wsClient, simplifiedTypes.ModelConnectionsByModel, sourceModel.Id)
-	//if errs != nil {
-	//	fmt.Println("Error getting BPMN Model Connections", errs)
-	//	//return
-	//}
-	//if len(*conns1) > 0 {
-	//	for _, c1 := range *conns1 {
-	//		fmt.Printf("Source model connections<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<%#v \n", c1)
-	//	}
-	//}
-
-	log.Println("----------------------------------------->Starting the Transformation Algorithm...")
-	startTime := time.Now()
 	if len(*targetFolders) > 0 {
 		for _, folder := range *targetFolders {
 
 			originalFolder := GetOriginalFolder(folder.Identification, originalFolders)
 			sourceDiagram := GetOriginalDiagram(originalFolder.Id, mets1)
 			targetDiagram := CreateTargetDiagram(wsClient, targetModel, folder.Id, sourceDiagram.Identification)
-
-			//fmt.Println("Target SFD diagram", targetDiagram)
-			//visualOriginalEls, er := simplifiedFunctions.GetModelVisualElement(wsClient, simplifiedTypes.ModelVisualElementsByDiagram, sourceDiagram.Id)
-			//if er != nil {
-			//	fmt.Println("Error getting BPMN Visual Model Elements", er)
-			//	//return
-			//}
-			//fmt.Println("---------+++++++++++-------------Visual elements from BPMN", visualOriginalEls)
 
 			if len(*mets) > 0 {
 				for _, e := range *mets {
@@ -219,7 +179,6 @@ func DefineModels(wsClient *client.WebSocketClient) {
 						fmt.Println("Error getting BPMN Visual Model Elements", er)
 						//return
 					}
-					//fmt.Println("Visual Target ELS ", visualSourceEls)
 					for _, e1 := range *mets1 {
 						if e.ElementType == ActiveStock && e.Identification == "Active "+e1.Identification {
 							//visualActivityEl, _ := simplifiedFunctions.GetModelVisualElement(wsClient, simplifiedTypes.ModelElement, e1.Id)
@@ -280,8 +239,6 @@ func DefineModels(wsClient *client.WebSocketClient) {
 					}
 
 				}
-				//elapsedTime2 := time.Since(startTime)
-				//log.Printf("-----------------------------------------> Transforming BPMN elements in %s ", elapsedTime2)
 
 				// create Visual connections for Connection between ActiveStock & FinishedStock
 				conns1, errs1 := simplifiedFunctions.GetModelConnection(wsClient, simplifiedTypes.ModelConnectionsByModel, targetModel.Id)
@@ -321,26 +278,20 @@ func DefineModels(wsClient *client.WebSocketClient) {
 
 						_ = CreateSFDVisualConnection(wsClient, &c1, targetDiagram.Id, targetModel.Id, visualHeadEl, visualTailEl, vcpath)
 
-						//vconn := CreateSFDVisualConnection(wsClient, &c1, targetDiagram.Id, targetModel.Id, visualHeadEl, visualTailEl, vcpath)
-						//fmt.Println("Visual Connection created", *vconn)
 					}
 				}
-				//return
-				//Create connections in SFD diagram(wsClient, simplifiedTypes.ModelConnectionsByDiagram, targetDiagram.Id)
-				log.Println("----------------------------------------->Starting the connection creation...")
-				startTimeconn := time.Now()
+
 				connectionCount := 0
 				if len(*conns) > 0 {
 					//Get all BPMN connections
 					for _, c := range *conns {
-						fmt.Println("BPMN connections", c)
+						//fmt.Println("BPMN connections", c)
 
 						//Get the BPMN element at the head of the connection
 						cHeadEl, e := simplifiedFunctions.GetModelElement(wsClient, simplifiedTypes.ModelElement, c.ModelElementIdSource)
 						if e != nil {
 							fmt.Println("Error getting BPMN Connection Head Element", e)
 						}
-						//fmt.Println("", cHeadEl)
 						//Loop through the transformed SFD elements, to get the SFD element that cHead was transformed into
 						transformedHead := &simplifiedTypes.MessageModelElement{}
 						if len(*mets) > 0 {
@@ -381,9 +332,7 @@ func DefineModels(wsClient *client.WebSocketClient) {
 						}
 						conn2.NotationConnectionId = (*cnvts)[0].Id
 
-						fmt.Println("SFD Connection connected", &conn2)
 						connectionCount++
-						fmt.Println(" Connections SFD", connectionCount)
 
 						//Now create visuals
 						//Visual Elements
@@ -410,24 +359,15 @@ func DefineModels(wsClient *client.WebSocketClient) {
 						y1 := visualHeadEl.PositionY + 25
 						y2 := visualTailEl.PositionY + 25
 						vcpath := strconv.Itoa(x1) + "," + strconv.Itoa(y1) + "," + strconv.Itoa(x2) + "," + strconv.Itoa(y2)
-						//fmt.Println("SFD Connection Path", vcpath)
 
-						//visualconn, _ := simplifiedFunctions.GetModelVisualConnection(wsClient, simplifiedTypes.ModelConnection, c.Id)
-
-						vconn := CreateSFDVisualConnection(wsClient, &conn2, targetDiagram.Id, targetModel.Id, visualHeadEl, visualTailEl, vcpath)
-						fmt.Println("Visual Connection created", *vconn)
-						//fmt.Println("Visual Connection created", vconn.Visible, visualHeadEl, visualTailEl)
+						_ = CreateSFDVisualConnection(wsClient, &conn2, targetDiagram.Id, targetModel.Id, visualHeadEl, visualTailEl, vcpath)
 					}
 
 				}
-				elapsedTime4 := time.Since(startTimeconn)
-				log.Printf("-----------------------------------------> Total connection time %s", elapsedTime4)
-				//fmt.Printf("Total connections created: %d\n", connectionCount)
+
 			}
 
 		}
 
 	}
-	elapsedTime := time.Since(startTime)
-	log.Printf("-----------------------------------------> Algorithm transformation done in %s ", elapsedTime)
 }
